@@ -283,6 +283,95 @@ group by a.MSCN, TenCN
 having count(C.MaNV) = (select	count(E.MaNV)
 						from	NhanVien E
 						where	E.MSCN = A.MSCN)
+
+
+--3.TRUY VAN GOM NHOM DU LIEU
+--a)voi moi chi nhanh hay cho biet cac thong tin sau TenCN, SoNV (so nhan vien cua chi nhanh do)
+select	TenCN, count(A.MaNV) as SoNV
+from	NhanVien A, ChiNhanh B
+where	A.MSCN = B.MSCN
+group by A.MSCN, TenCN
+
+
+
+--b)voi moi ky nang hay cho biet TenKN, SoNguoiDung(So nhan vien biet su dung ky nang do)
+select	TenKN, count(A.MaNV) as SoNNguoiDung
+from	NhanVien A, KyNang B, NhanVienKyNang C
+where	A.MaNV = C.MaNV and C.MSKN = B.MSKN
+group by C.MSKN, TenKN
+
+Select		TenKN, count(MaNV) as SoNguoiDung
+From		NhanVienKyNang A,KyNang B
+Where		A.MSKN = B.MSKN
+Group by	TenKN
+
+
+--c)cho biet TenKN co tu 3 nhan vien trong cong ty su dung tro len
+Select		TenKN, count(MaNV) as SoNguoiDung
+From		NhanVienKyNang A,KyNang B
+Where		A.MSKN = B.MSKN
+Group by	TenKN
+having		count(MaNV) >=3
+
+
+--d) cho biet TenCN co nhieu nhan vien nhat
+Select		TenCN, count(MaNV) as SoNhanVien
+From		ChiNhanh A, NhanVien B
+Where		A.MSCN = B.MSCN
+Group by	TenCN
+having		count(MaNV) >= all(select	count(MaNV)
+								from	NhanVien
+								group by	MSCN)
+
+Select	A.MSCN, TenCN, count(MaNV) as SoNV
+From	ChiNhanh A, NhanVien B
+Where	A.MSCN = B.MSCN
+Group by	A.MSCN, TenCN
+Having count(MaNV) >=all (Select	COUNT(MaNV)
+							From	NhanVien
+							Group By	MSCN
+						 )
+
+--e) cho biet TenCN co it nhan vien nhat
+Select		TenCN, count(MaNV) as SoNhanVien
+From		ChiNhanh A, NhanVien B
+Where		A.MSCN = B.MSCN
+Group by	TenCN
+having		COUNT(MaNV) = (
+							select	min(SoNV)
+							from	(
+										select	count(MaNV) as SoNV
+										from	NhanVien 
+										group by	MSCN
+									) AS BangTam
+							)
+							
+
+--f) voi moi nhan vien, hay cho biet so ky nang tin hoc ma nhan vien do su dung duoc
+Select		A.MaNV, A.Ho +' ' + A.Ten as HoTen, count(b.MSKN) as SoKyNangBiet
+From		NhanVien A, KyNang B, NhanVienKyNang C
+Where		A.MaNV = C.MaNV and C.MSKN = B.MSKN
+GROUP BY A.MaNV, A.Ho, A.Ten
+
+--g) cho biet HoTen, TenCN cua nhan vien biet su dung nhieu ky nang nhat
+Select top 1		A.MaNV, A.Ho +' ' + A.Ten as HoTen, count(b.MSKN) as SoKyNangBiet
+From		NhanVien A, KyNang B, NhanVienKyNang C
+Where		A.MaNV = C.MaNV and C.MSKN = B.MSKN
+GROUP BY A.MaNV, A.Ho, A.Ten 
+order by count(b.mskn) desc
+
+Select		A.MaNV, A.Ho +' ' + A.Ten as HoTen, count(b.MSKN) as SoKyNangBiet
+From		NhanVien A, KyNang B, NhanVienKyNang C
+Where		A.MaNV = C.MaNV and C.MSKN = B.MSKN
+GROUP BY A.MaNV, A.Ho, A.Ten 
+having		count(b.mskn) = (
+						select min(SoKN)
+						from(
+							select	COUNT(mskn) as SoKN
+							from	NhanVien A, KyNang
+							group by MaNV) as ThongKeSoKyNang
+							) 
+
 --delete from ChiNhanh
 --delete from KyNang
 --delete from NhanVienKyNang
