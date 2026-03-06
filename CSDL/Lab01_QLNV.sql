@@ -389,6 +389,36 @@ where MSKN = (select	MSKN
 
 
 
+
+
+--d) tao bang 
+CREATE TABLE NhanVienChiNhanh1
+(
+    MaNV char(4) primary key,
+    HoTen nvarchar(30),
+    SoKyNang tinyint
+)
+SELECT * FROM NhanVienChiNhanh1
+
+
+--e) them vao bang tren 
+INSERT INTO NhanVienChiNhanh1 (MaNV, HoTen, SoKyNang)
+SELECT A.MaNV, A.Ho + ' ' + A.Ten, COUNT(B.MSKN)
+FROM NhanVien A
+LEFT JOIN NhanVienKyNang B ON A.MaNV = B.MaNV
+WHERE A.MSCN = '01'
+GROUP BY A.MaNV, A.Ho, A.Ten
+SELECT * FROM NhanVienChiNhanh1
+
+
+
+
+
+
+
+
+
+
 Select * from ChiNhanh
 Select * from NhanVien
 Select * from KyNang
@@ -397,6 +427,8 @@ Select * from NhanVienKyNang
 select *
 from	NhanVien A, KyNang B, NhanVienKyNang C, ChiNhanh D
 where	A.MaNV = C.MaNV and B.MSKN = C.MSKN and A.MSCN = D.MSCN 
+
+
 --delete from ChiNhanh
 --delete from KyNang
 --delete from NhanVienKyNang
