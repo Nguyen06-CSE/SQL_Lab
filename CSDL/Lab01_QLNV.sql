@@ -267,11 +267,22 @@ where A.MaNV = B.MaNV and B.MSKN = KN.MSKN and A.MSCN = CN.MSCN
 										from NhanVienKyNang B2
 										where B2.MSKN = B.MSKN
 										);
-							
+--select	A.MaNV, Ho +' '+Ten as HoTen, TenCN, TenKN, MucDo
+--from	NhanVien A, KyNang B, NhanVienKyNang C, ChiNhanh D
+--where	A.MaNV = C.MaNV and B.MSKN = C.MSKN and A.MSCN = D.MSCN
+--		and C.MucDo = ( select	max(E.MucDo)
+--						from	NhanVienKyNang E
+--						where	C.MSKN = E.MSKN)
 
 
-
-
+--d) liet ke cac chi nhanh ma moi nhan vien trong do deu biet Word
+select A.MSCN, TenCN, count(C.MaNV) as SoLuong
+from	NhanVien A, KyNang B, NhanVienKyNang C, ChiNhanh D
+where	A.MaNV = C.MaNV and B.MSKN = C.MSKN and A.MSCN = D.MSCN and TenKN = 'Word'
+group by a.MSCN, TenCN
+having count(C.MaNV) = (select	count(E.MaNV)
+						from	NhanVien E
+						where	E.MSCN = A.MSCN)
 --delete from ChiNhanh
 --delete from KyNang
 --delete from NhanVienKyNang
