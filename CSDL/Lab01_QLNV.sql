@@ -372,6 +372,31 @@ having		count(b.mskn) = (
 							group by MaNV) as ThongKeSoKyNang
 							) 
 
+
+--4.Cap nhat du lieu
+--a)them bo <'06', ....> vao bang ky nang
+INSERT INTO KyNang VALUES('06', N'PhotoShop')
+--b)them cac bo sau vao bang NhanVienKyNang
+INSERT INTO NhanVienKyNang VALUES('0001', '06',3)
+INSERT INTO NhanVienKyNang VALUES('0005', '06',2)
+
+--c)cap nhat cho cac nhan vien co su dung ky nang 'Word' cos muc di tang them mot bac
+update NhanVienKyNang
+set MucDo = MucDo + 1
+where MSKN = (select	MSKN
+				from	KyNang
+				where	TenKN = N'Word')
+
+
+
+Select * from ChiNhanh
+Select * from NhanVien
+Select * from KyNang
+Select * from NhanVienKyNang
+
+select *
+from	NhanVien A, KyNang B, NhanVienKyNang C, ChiNhanh D
+where	A.MaNV = C.MaNV and B.MSKN = C.MSKN and A.MSCN = D.MSCN 
 --delete from ChiNhanh
 --delete from KyNang
 --delete from NhanVienKyNang
