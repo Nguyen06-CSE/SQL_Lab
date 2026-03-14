@@ -5,7 +5,7 @@
 	Lớp: CTK48B
 	Thời gian: 31/1/2026 - kết thúc
 */
-Create database	Lab02_QLSX
+create database Lab02_QLSX
 go
 use Lab02_QLSX
 go
@@ -116,9 +116,57 @@ select MaTSX, count(MaCN) as SoLuong
 from CongNhan
 Group by MaTSX
 --6) tong so luong thanh pham theo tung loaima moi cong nhan lam duoc
-select A.Ho, A.Ten, B.TenSP,COUNT(
-from CongNhan A, SanPham B, ThanhPham C
+select	Ho, Ten, C.TenSP, sum(SoLuong) as TongSLThanhPham, sum(TienCong) as TongThanhTien
+from	CongNhan A, ThanhPham B, SanPham C
+where	A.MaCN = B.MaCN and B.MaSP = c.MaSP
+group by A.MaCN, Ho, Ten, TenSP
+--7) tong so tien cong da tra cho cong nhan trong thang 1 nam 2007
+select	sum(B.SoLuong* C.TienCong) as TongTienCongTraTrongThang1
+from	 ThanhPham B, SanPham C
+where	MONTH(B.ngay) = 1 and year(b.ngay) = 2007 and B.MaSP = c.MaSP
+--8) cho biet san pham duoc san xat nhieu nhat trong thang 2/2007
+select	TenSP, SoLuong
+from	ThanhPham B, SanPham C
+where   MONTH(B.ngay) = 2 and YEAR(B.ngay)=2007 
+			and B.SoLuong = (select		max(SoLuong)
+							from	ThanhPham D
+							where	MONTH(D.ngay) = 2 and YEAR(D.ngay)=2007 )
+--9) cho biet cong nhan nao san xuat duoc nhieu chen nhat
+select	Ho, Ten, SoLuong
+from	CongNhan A, ThanhPham B, SanPham C
+where	A.MaCN = B.MaCN and B.MaSP = c.MaSP and C.TenSP = 'Chén'
+		and B.SoLuong = (select MAX(SoLuong)
+						from	ThanhPham D, SanPham E
+						where D.MaSP = E.MaSP and E.TenSP = 'Chén')
+group by A.MaCN, Ho, Ten, TenSP, SoLuong
+--10) tien cong thang 2/2007 cua cong nhan vien co ma so 'CN002'
+select	Ho, Ten, sum(B.SoLuong* C.TienCong) as TongTienCongTraTrongThang2CuaCongNhan
+from	 CongNhan A,ThanhPham B, SanPham C
+where	MONTH(B.ngay) = 2 and year(b.ngay) = 2007 and A.MaCN = B.MaCN and B.MaSP = c.MaSP and A.MaCN = 'CN002'
+group by a.Ho, a.Ten
+--11) liet ke cong nhan co sx tu 3 loai sp tro len
+select	Ho, Ten, count(distinct B.MaSP) as SoSP_SXDuoc
+from	 CongNhan A,ThanhPham B, SanPham C
+where	A.MaCN = B.MaCN and B.MaSP = c.MaSP 
+group by a.Ho, a.Ten
+having  count(distinct B.MaSP) >=3
+--12) cap nhat tien cong cua cac loai binh gom tren 100
+update SanPham
+set TienCong = TienCong + 1000
+where TenSP = N'Bình gốm nhỏ' or TenSP = N'Bình gốm lớn'
 
+--13) them bo ... vao bang CongNhan
+--select * from CongNhan
+insert into CongNhan values (N'CN006', N'Lê Thị', N'Lan', N'Nữ', '15/01/1980', N'TS02')
+
+
+
+
+
+select * from CongNhan
+select * from ToSanXuat
+select * from SanPham
+select * from ThanhPham
 ----delete from CongNhan
 ----delete from  SanPham
 ----delete from ToSanXuat
