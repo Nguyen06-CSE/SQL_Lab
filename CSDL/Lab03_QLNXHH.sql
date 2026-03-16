@@ -274,15 +274,54 @@ select	Sum(CAST(B.SOLUONG AS INT) * CAST(B.DONGIA AS INT)) as DoanhThuNam_2006
 from	HOADON A, CT_HOADON B
 where	A.SOHD = B.SOHD and YEAR(A.NGAYLAPHD) = 2006
 --18) cho biet loai mat hang ban chay nhat
-SELECT C.MAHH, C.TENHH, C.SOLUONGTON, SUM(B.SOLUONG) AS TongSoLuongBan
-FROM HOADON A, CT_HOADON B, HANGHOA C
-WHERE A.SOHD = B.SOHD and B.MAHH = C.MAHH   
-GROUP BY C.MAHH, C.TENHH, C.SOLUONGTON
-HAVING SUM(B.SOLUONG) = (
-    SELECT MAX(TongBan)
-    FROM (
-        SELECT SUM(SOLUONG) AS TongBan
-        FROM CT_HOADON
-        GROUP BY MAHH
-    ) AS ThongKe
+
+
+select		C.MAHH, TENHH, C.SOLUONGTON, sum(B.SOLUONG) as TongLuongBan
+from		HOADON A, CT_HOADON B, HANGHOA C
+where		A.SOHD = B.SOHD and B.MAHH = C.MAHH
+group by	C.MAHH, TENHH, C.SOLUONGTON
+having		sum(B.SOLUONG) = (
+			select max(TongBan)
+			from(
+			select	sum(SOLUONG) as TongBan
+									from	CT_HOADON
+									group by MAHH
+								) as ThongKe
 )
+--19) liet ke thong tin ban hang cua thang 5/2006 
+SELECT B.MAHH, C.TENHH, C.DVT, SUM(B.SOLUONG) as TongSoLuong, SUM(B.SOLUONG * B.DONGIA) as TongThanhTien
+FROM HOADON A, CT_HOADON B, HANGHOA C
+WHERE A.SOHD = B.SOHD and  B.MAHH = C.MAHH  and  A.SOHD LIKE 'X%'                     
+  and  MONTH(A.NGAYLAPHD) = 5 and  YEAR(A.NGAYLAPHD) = 2006              
+GROUP BY B.MAHH, C.TENHH, C.DVT
+ORDER BY TongThanhTien DESC
+--20) liet ke thong tin cua mat hang co nhieu nguoi mua nhat
+--SELECT TOP 1 B.MAHH, C.TENHH, C.DVT, 
+--       COUNT(DISTINCT A.MADT) as SoNguoiMua,
+--       SUM(B.SOLUONG) as TongSoLuongBan,
+--       SUM(B.SOLUONG * B.DONGIA) as TongThanhTien
+--FROM HOADON A, CT_HOADON B, HANGHOA C
+--WHERE A.SOHD = B.SOHD and B.MAHH = C.MAHH and A.SOHD LIKE 'X%'                    
+--GROUP BY B.MAHH, C.TENHH, C.DVT
+--ORDER BY SoNguoiMua DESC
+
+select		top 1 C.MAHH, A.TENHH,A.DVT, SUM(C.SOLUONG) as TongSoLuongBan
+from		HANGHOA A, HOADON B, CT_HOADON C
+where		A.MAHH = C.MAHH and B.SOHD = C.SOHD and B.SOHD like 'X%'
+group by	C.MAHH, A.TENHH,A.DVT
+order by	count(C.SOLUONG) DESC
+
+--21 tinh va cap nhat tong gia tri cua cac hoa don
+UPDATE HOADON
+SET TONGTG = (
+    SELECT SUM(CAST(SOLUONG AS INT) * CAST(DONGIA AS INT))
+    FROM CT_HOADON
+    WHERE CT_HOADON.SOHD = HOADON.SOHD
+)
+WHERE EXISTS (  
+    SELECT 1
+    FROM CT_HOADON
+    WHERE CT_HOADON.SOHD = HOADON.SOHD
+)
+
+select * from HOADON
