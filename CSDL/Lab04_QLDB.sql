@@ -1,4 +1,4 @@
-﻿Create database Lab04_QLDB
+﻿﻿Create database Lab04_QLDB
 go
 use Lab04_QLDB
 go
@@ -57,15 +57,15 @@ insert into BAO_TCHI values
 go
 -----Nhập bảng Phát thanh
 insert into PHATTHANH values
-(N'TT01', 123, '2005-12-15'),
-(N'KT01', 70,  '2005-12-15'),
-(N'TT01', 124, '2005-12-16'),
-(N'TN01', 256, '2005-12-17'),
-(N'PN01', 45,  '2005-12-23'),
-(N'PN02', 111, '2005-12-18'),
-(N'PN02', 112, '2005-12-19'),
-('TT01', 125, '2005-12-17'),
-('PN01', 46,  '2005-12-30')
+(N'TT01', 123, '15/12/2005'),
+(N'KT01', 70,  '15/12/2005'),
+(N'TT01', 124, '16/12/2005'),
+(N'TN01', 256, '17/12/2005'),
+(N'PN01', 45,  '23/12/2005'),
+(N'PN02', 111, '18/12/2005'),
+(N'PN02', 112, '19/12/2005'),
+(N'TT01', 125, '17/12/2005'),
+(N'PN01', 46,  '30/12/2005');
 go
 -----Nhập bảng khách hàng
 insert into KHACHHANG values
@@ -75,13 +75,13 @@ insert into KHACHHANG values
 go
 -----Nhập bảng đặt báo
 insert into DATBAO values
-(N'KH01', N'TT01', 100, '2000-01-12'),
-(N'KH02', N'TN01', 150, '2001-05-01'),
-(N'KH01', N'PN01', 200, '2001-06-25'),
-(N'KH03', N'KT01', 50,  '2002-03-17'),
-(N'KH03', N'PN02', 200, '2003-08-26'),
-(N'KH02', N'TT01', 250, '2004-01-15'),
-(N'KH01', N'KT01', 300, '2004-10-14')
+(N'KH01', N'TT01', 100, '12/01/2000'),
+(N'KH02', N'TN01', 150, '01/05/2001'),
+(N'KH01', N'PN01', 200, '25/06/2001'),
+(N'KH03', N'KT01', 50,  '17/03/2002'),
+(N'KH03', N'PN02', 200, '26/08/2003'),
+(N'KH02', N'TT01', 250, '15/01/2004'),
+(N'KH01', N'KT01', 300, '14/10/2004')
 go
 
 --delete from DATBAO
@@ -128,13 +128,74 @@ SELECT A.MAKH, A.TenKH, COUNT(B.MaBaoTC) as SoBaoDaDat
 FROM KHACHHANG A, DATBAO B
 WHERE A.MAKH = B.MAKH
 GROUP BY A.MAKH, A.TenKH
-ORDER BY SoBaoDaDat DESC
---7) Cho biết số khách hàng đặt mua báo trong năm 2004.
+
+--7) Cho biết số khách hàng đặt mua báo trong năm 2004.\
+SELECT COUNT(DISTINCT MaKH) AS SoKH
+FROM DATBAO
+WHERE YEAR(NgayDM) = 2004;
 --8) Cho biết thông tin đặt mua báo của các khách hàng (TenKH, TeN, DinhKy, SLMua, SoTien), trong đó SoTien = SLMua x DonGia.
+SELECT KH.TenKH, B.Ten, B.DinhKy, DB.SLMua,
+       DB.SLMua * B.GiaBan AS SoTien
+FROM DATBAO DB
+JOIN KHACHHANG KH ON DB.MaKH = KH.MaKH
+JOIN BAO_TCHI B ON DB.MaBaoTC = B.MaBaoTC;
 --9) Cho biết các tờ báo, tạp chí (Ten, DinhKy) và tổng số lượng đặt mua của các khách hàng đối với tờ báo, tạp chí đó.
+SELECT KH.TenKH, B.Ten, B.DinhKy, DB.SLMua, DB.SLMua * B.GiaBan AS SoTien
+FROM KHACHHANG KH, BAO_TCHI B, DATBAO DB
+WHERE KH.MaKH = DB.MaKH AND B.MaBaoTC = DB.MaBaoTC;
 --10) Cho biết tên các tờ báo dành cho học sinh, sinh viên (mã báo tạp chí bắt đầu bằng HS).
+SELECT Ten
+FROM BAO_TCHI
+WHERE MaBaoTC LIKE 'HS%';
 --11) Cho biết những tờ báo không có người đặt mua.
+SELECT Ten
+FROM BAO_TCHI
+WHERE MaBaoTC NOT IN (
+    SELECT MaBaoTC
+    FROM DATBAO
+)
 --12) Cho biết tên, định kỳ của những tờ báo có nhiều người đặt mua nhất.
+SELECT Ten, DinhKy
+FROM BAO_TCHI
+WHERE MaBaoTC IN (
+    SELECT MaBaoTC
+    FROM DATBAO
+    GROUP BY MaBaoTC
+    HAVING COUNT(DISTINCT MaKH) = (
+        SELECT MAX(SoNguoi)
+        FROM (
+            SELECT COUNT(DISTINCT MaKH) AS SoNguoi
+            FROM DATBAO
+            GROUP BY MaBaoTC
+        ) AS TimMax
+    )
+)
 --13) Cho biết khách hàng đặt mua nhiều báo, tạp chí nhất.
+SELECT TenKH
+FROM KHACHHANG
+WHERE MaKH IN (
+    SELECT MaKH
+    FROM DATBAO
+    GROUP BY MaKH
+    HAVING COUNT(DISTINCT MaBaoTC) = (
+        SELECT MAX(SoBao)
+        FROM (
+            SELECT COUNT(DISTINCT MaBaoTC) AS SoBao
+            FROM DATBAO
+            GROUP BY MaKH
+        ) AS TimMax
+    )
+)
 --14) Cho biết các tờ báo phát hành định kỳ một tháng 2 lần.
+SELECT * 
+FROM BAO_TCHI 
+WHERE DinhKy = N'Bán nguyệt san'
 --15) Cho biết các tờ báo, tạp chi có từ 3 khách hàng đặt mua trở lên.
+SELECT Ten
+FROM BAO_TCHI
+WHERE MaBaoTC IN (
+    SELECT MaBaoTC
+    FROM DATBAO
+    GROUP BY MaBaoTC
+    HAVING COUNT(DISTINCT MaKH) >= 3
+)
