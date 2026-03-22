@@ -171,3 +171,115 @@ select * from ThanhPham
 ----delete from  SanPham
 ----delete from ToSanXuat
 ----delete from ThanhPham
+
+
+--Hàm
+--a)Tính tổng số công nhân của một tổ sản xuất cho trước
+create function fn_TinhTongCongNhanTheoTo(@MaTSX char(4)) returns table
+as
+return(
+		select A.TenTSX, count(B.MaCN) as tong
+		from ToSanXuat A, CongNhan B
+		where A.MaTSX = B.MaTSX and @MaTSX = A.MaTSX
+		group by A.MaTSX, A.TenTSX
+)
+GO
+SELECT * FROM fn_TinhTongCongNhanTheoTo('TS01')
+SELECT * FROM fn_TinhTongCongNhanTheoTo('TS02')
+
+--b. Tính tổng sản lượng sản xuất trong một tháng của một loại sản phẩm cho trước.
+create function fn_TinhTongSanLuongSanXuatTrongMotThang (@MaSP char (5), @Thang int, @Nam int)
+returns table
+as
+return(
+		select	sum(B.SoLuong) as TongSoLuong, @Thang as thang, @Nam as nam
+		from	SanPham A, ThanhPham B
+		where	A.MaSP = B.MaSP and @Thang = MONTH(B.Ngay) and @Nam = year(B.Ngay)
+)
+go
+SELECT * FROM fn_TinhTongSanLuongSanXuatTrongMotThang('SP001', 2, 2007)
+SELECT * FROM fn_TinhTongSanLuongSanXuatTrongMotThang('SP002', 1, 2007)
+
+--c. Tính tổng tiền công tháng của một công nhân cho trước.
+create function fn_TinhTongTienCongCuaMotThang(@MaCN char(5),@Thang int) returns table
+as
+return(
+		select	C.Ho + ' ' + C.Ten as hoTen, sum(A.TienCong * B.SoLuong) as tongTienCong
+		from	SanPham A, ThanhPham B, CongNhan C
+		where	A.MaSP = B.MaSP and B.MaCN = C.MaCN and @Thang = MONTH(B.Ngay) and C.MaCN = @MaCN
+		GROUP BY C.Ho, C.Ten
+)
+
+SELECT * FROM fn_TinhTongTienCongCuaMotThang('CN001', 2)
+SELECT * FROM fn_TinhTongTienCongCuaMotThang('CN003', 1)
+
+
+--d. Tính tổng thu nhập trong năm của một tổ sản xuất cho trước.
+create function fn_TinhTongThuNhapNamCuaTSX(@MaTSX char(4), @Nam int) returns table
+as
+return(
+		select	C.TenTSX, sum(B.SoLuong * A.TienCong) as Tong
+		from	SanPham A, ThanhPham B, ToSanXuat C, CongNhan D
+		where	@Nam = YEAR(B.ngay) and @MaTSX = C.MaTSX and A.MaSP = B.MaSP and B.MaCN = D.MaCN and C.MaTSX = D.MaTSX
+		group by C.MaTSX, C.TenTSX
+)
+go
+SELECT * FROM fn_TinhTongThuNhapNamCuaTSX('TS01', 2007)
+SELECT * FROM fn_TinhTongThuNhapNamCuaTSX('TS02', 2006)
+
+--e. Tính tổng sản lượng sản xuất của một loại sản phẩm trong một khoảng thời gian cho trước.
+create function fn_TinhTongSanLuongCuaMotLoaiSPTrongKhoangTGChoTruoc(@MaSP char(5), @NgayBD date, @NgayKT date)
+returns table
+as
+return(
+		select	 A.MaSP, A.TenSP, A.DVT,
+        SUM(B.SoLuong) AS TongSanLuong, @NgayBD AS TuNgay, @NgayKT AS DenNgay
+		from	SanPham A, ThanhPham B
+		where	A.MaSP = B.MaSP and @MaSP = A.MaSP and B.Ngay between @NgayBD and @NgayKT
+		GROUP BY A.MaSP, A.TenSP, A.DVT
+)
+GO
+--drop function fn_TinhTongSanLuongCuaMotLoaiSPTrongKhoangTGChoTruoc
+SELECT * FROM fn_TinhTongSanLuongCuaMotLoaiSPTrongKhoangTGChoTruoc('SP001', '01/01/2007', '31/03/2007')
+SELECT * FROM fn_TinhTongSanLuongCuaMotLoaiSPTrongKhoangTGChoTruoc('SP002', '01/01/2007', '31/01/2007')
+SELECT * FROM fn_TinhTongSanLuongCuaMotLoaiSPTrongKhoangTGChoTruoc('SP003', '01/02/2007', '28/02/2007')
+---------------------------THỦ TỤC
+--a. In danh sách các công nhân của một tổ sản xuất cho trước.
+CREATE PROC usp_InDSCongNhanCuaMotTo
+	@MaTSX char(4)
+as
+	 if not exists (select * from ToSanXuat where @MaTSX = MaTSX)
+		print N'MaTSX ' + @MaTSX + ' doesnt exists in database!!'
+	else
+		begin 
+		print N'List of ' + @MaTSX + ' in database: '
+		select	Ho, Ten, MaCN, Phai, NS
+		from	CongNhan
+		where	MaTSX = @MaTSX
+		end
+go
+exec usp_InDSCongNhanCuaMotTo 'TS01'
+exec usp_InDSCongNhanCuaMotTo 'TS02'
+exec usp_InDSCongNhanCuaMotTo 'TS99'
+
+--b. In bảng chấm công sản xuất trong tháng của một công nhân cho trước (bao gồm Tên sản phẩm, đơn vị tính, số lượng sản xuất trong tháng, đơn giá, thành tiền).
+create proc usp_InBangChamCongTheoThang
+	@MaCN char(5), @Thang int, @Nam int
+as
+	if not exists (select * from CongNhan where @MaCN = MaCN)
+		print N'In database dont have any ' + @MaCN
+	else
+		begin
+		print N'production timesheet for ' + @MaCN + N' in month ' + CAST(@Thang AS varchar) + N' and year ' + CAST(@Nam AS varchar) + N' is: '
+		select	B.TenSP, B.DVT, C.SoLuong, B.TienCong, (B.TienCong * C.SoLuong) as ThanhTien
+		from	CongNhan A, SanPham B, ThanhPham C
+		where	@MaCN = A.MaCN and MONTH(C.Ngay) = @Thang and YEAR(C.ngay) = @Nam  and A.MaCN = C.MaCN and B.MaSP = C.MaSP 
+		end
+go
+
+--drop proc usp_InBangChamCongTheoThang
+
+exec usp_InBangChamCongTheoThang 'CN001', 1, 2007
+exec usp_InBangChamCongTheoThang 'CN003', 2, 2007
+exec usp_InBangChamCongTheoThang 'CN999', 1, 2007
+

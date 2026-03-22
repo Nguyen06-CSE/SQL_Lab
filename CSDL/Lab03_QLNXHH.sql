@@ -1,6 +1,6 @@
 ﻿/*	HP: Cơ sở dữ liệu
 	Lab03: Quản lý Sản xuất hàng hóa
-	SV:	Ngô Quyền Linh
+	SV:	Cao Khoi Nguyen
 	Mã SV: 2411871
 	Lớp: CTK48B
 	Thời gian: 31/01/2026 - kết thúc
