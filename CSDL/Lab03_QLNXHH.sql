@@ -325,3 +325,229 @@ WHERE EXISTS (
 )
 
 select * from HOADON
+
+
+
+
+
+
+
+
+
+
+----------------------------FUNCTION-----------------------------------
+--a) tinh tong so luong nhap trong mot khoang thoi gian cua mot mat hang cho truoc
+create function fn_TinhTongNhapTrongKhoangTGChoTruoc(@NgayBD date, @NgayKT date, @MaHH varchar(5))
+returns table
+as
+return(
+		select	sum(SOLUONG) as TongSoLuong, A.MAHH
+		from	CT_HOADON A, HOADON B
+		where	A.SOHD = B.SOHD and A.SOHD like 'N%' and A.MAHH = @MaHH and  B.NGAYLAPHD between @NgayBD and @NgayKT
+		group by A.MAHH 
+	)
+go
+
+--drop function fn_TinhTongNhapTrongKhoangTGChoTruoc
+
+SELECT * FROM fn_TinhTongNhapTrongKhoangTGChoTruoc('01/01/2006', '31/12/2006', 'CPU01')
+
+--b) tinh tong so luong san xuat trong mot khoang thoi gian cua mot mat hang cho truoc
+create function fn_TinhTongXuatTrongKhoangTGChoTruoc(@NgayBD date, @NgayKT date, @MaHH varchar(5))
+returns table
+as
+return(
+		select	sum(SOLUONG) as TongSoLuong, A.MAHH
+		from	CT_HOADON A, HOADON B
+		where	A.SOHD = B.SOHD and A.SOHD like 'X%' and A.MAHH = @MaHH and  B.NGAYLAPHD between @NgayBD and @NgayKT
+		group by A.MAHH 
+	)
+go
+
+SELECT * FROM fn_TinhTongXuatTrongKhoangTGChoTruoc('01/01/2006', '31/12/2006', 'CPU01')
+
+--c) tinh tong doanh thu trong mot thang cho truoc 
+create function fn_TinhTongDoanhThu(@Thang int, @Nam int)
+returns table
+as
+return(
+		select	sum(cast(A.dongia as int) * cast(A.soluong as int)) as doanhThu, MONTH(B.ngaylaphd) as thang, YEAR(B.ngaylapHD) as nam
+		from	CT_HOADON A, HOADON B
+		where	A.SOHD = B.SOHD and MONTH(B.NGAYLAPHD) = @Thang and year(B.NGAYLAPHD) = @Nam
+		group by  MONTH(B.ngaylaphd), YEAR(B.ngaylapHD)
+)
+
+--drop function fn_TinhTongDoanhThu
+go
+SELECT * FROM fn_TinhTongDoanhThu(1, 2006)
+
+--d) tinh tong doanh thu cua mot mat hang trong mot khoang thoi gian cho truoc
+create function fn_TinhTongDoanhThuTrongKhoangTGChoTruoc(@NgayBD date, @NgayKT date, @MaHH varchar(5))
+returns table
+as
+return(
+		select	A.MAHH, C.TENHH, sum(SOLUONG) as TongSoLuong, sum (SOLUONG*DONGIA) as TongDoanhThu
+		from	CT_HOADON A, HOADON B, HANGHOA C
+		where	A.SOHD = B.SOHD and A.MAHH = C.MAHH and A.SOHD like 'X%' and A.MAHH = @MaHH and  B.NGAYLAPHD between @NgayBD and @NgayKT
+		group by A.MAHH, C.TENHH
+	)
+go
+--drop function fn_TinhTongDoanhThuTrongKhoangTGChoTruoc
+SELECT * FROM fn_TinhTongDoanhThuTrongKhoangTGChoTruoc('01/01/2006', '31/12/2006', 'CPU01')
+
+--e) tinh tong so tien nhap hang trong mot khoang thoi gian cho truoc
+create function fn_TinhTongTienNhap(@NgayBD date, @NgayKT date)
+returns table
+as
+return(
+	select	sum(cast(A.dongia as int) * cast(A.soluong as int)) as TongTienNhap
+	from	CT_HOADON A, HOADON B
+	where	A.SOHD = B.SOHD and A.SOHD like 'N%'
+		and B.NGAYLAPHD between @NgayBD and @NgayKT
+)
+go
+
+--drop function fn_TinhTongTienNhap
+select * from fn_TinhTongTienNhap('01/01/2006', '31/12/2006')
+
+--f) tinh tong so tien cua mot hoa don cho truoc
+create function fn_TinhTongTienHoaDon(@SOHD char(5))
+returns table
+as
+return(
+	select	sum(cast(A.dongia as int) * cast(A.soluong as int)) as TongTien
+	from	CT_HOADON A
+	where	A.SOHD = @SOHD
+)
+go
+drop function fn_TinhTongTienHoaDon
+select * from fn_TinhTongTienHoaDon('N0001')
+select * from fn_TinhTongTienHoaDon('X0001')
+
+
+
+
+--------------------proc----------------
+
+--a) cap nhat so luong ton cua mot mat hang khi nhap hang hoac xuat hang
+
+create proc usp_CapNhatSoLuongTon
+	@SoHD char(5), @LoaiGD char(1)
+as
+	begin
+		set @LoaiGD = left(@SoHD,1)
+		if	@LoaiGD = 'N'
+			begin
+				update HANGHOA
+				set SOLUONGTON = SOLUONGTON + B.SOLUONG
+				from	HANGHOA A, CT_HOADON B
+				where	A.MAHH = B.MAHH and B.SOHD = @SoHD
+			end
+		else if @LoaiGD = 'X'
+			begin
+				update HANGHOA
+				set SOLUONGTON = SOLUONGTON - B.Soluong
+				from HANGHOA A, CT_HOADON B
+				where	A.MAHH = B.MAHH and B.SOHD = @SoHD
+			end
+		end
+go
+
+--drop proc usp_CapNhatSoLuongTon
+
+
+select MAHH, TENHH, SOLUONGTON from HANGHOA where MAHH = 'CPU01'
+exec sp_SoLuongTon 'N0001'
+select MAHH, TENHH, SOLUONGTON from HANGHOA where MAHH = 'CPU01'
+exec sp_SoLuongTon 'X0001'
+select MAHH, TENHH, SOLUONGTON from HANGHOA where MAHH = 'CPU01'
+
+
+--b) cap nhat tong gia tri cua mot hoa don
+create proc usp_CapNhatTongGiaTriHoaDon
+@SoHD char(5)
+as
+begin
+    declare @TongTien int
+    select @TongTien = sum(cast(DONGIA as int) * cast(DONGIA as int))
+    from CT_HOADON
+    where SOHD = @SoHD
+    update HOADON
+    set TONGTG = @TongTien
+    where SOHD = @SoHD
+    if @@ROWCOUNT > 0
+        print N'Cập nhật thành công hóa đơn ' + @SoHD + N' với tổng giá trị: ' + CAST(@TongTien AS varchar)
+    else
+        print N'Không tìm thấy hóa đơn ' + @SoHD
+end
+go
+--drop proc sp_CapNhatTongGiaTriHoaDon
+select SOHD, NGAYLAPHD, MADT, TONGTG from HOADON
+exec usp_CapNhatTongGiaTriHoaDon 'N0001'
+select SOHD, NGAYLAPHD, MADT, TONGTG from HOADON
+
+
+--c) in day du thong tin cua mot hoa don
+create proc usp_InThongTinHoaDon
+@SoHD char(5)
+as
+begin
+    declare @LoaiHD char(1)
+    declare @TenDT nvarchar(100)
+    declare @NgayLap datetime
+    declare @TongTien int
+    
+    set @LoaiHD = left(@SoHD, 1)
+    
+    if not exists (select * from HOADON where SOHD = @SoHD)
+    begin
+        print N'Không tìm thấy hóa đơn ' + @SoHD
+        return
+    end
+    
+    select @TenDT = TENDT, @NgayLap = NGAYLAPHD, @TongTien = TONGTG
+    from HOADON A, DOITAC B
+    where A.MADT = B.MADT and A.SOHD = @SoHD
+    
+    print N'============================================'
+    if @LoaiHD = 'N'
+        print N'              HÓA ĐƠN NHẬP HÀNG'
+    else
+        print N'              HÓA ĐƠN XUẤT HÀNG'
+    print N'============================================'
+    print N'Số hóa đơn: ' + @SoHD
+    print N'Ngày lập: ' + CAST(@NgayLap AS varchar)
+    print N'Đối tác: ' + @TenDT
+    print N'--------------------------------------------'
+    print N'STT  Mã hàng  Tên hàng                    SL   Đơn giá  Thành tiền'
+    print N'--------------------------------------------'
+    
+    select 
+        ROW_NUMBER() over (order by A.MAHH) as STT,
+        A.MAHH,
+        B.TENHH,
+        A.SOLUONG,
+        A.DONGIA,
+        (cast(A.DONGIA as int) * cast(A.SOLUONG as int)) as ThanhTien
+    from CT_HOADON A, HANGHOA B
+    where A.MAHH = B.MAHH and A.SOHD = @SoHD
+    order by A.MAHH
+    
+    print N'--------------------------------------------'
+    print N'Tổng cộng: ' + CAST(isnull(@TongTien, 0) AS varchar)
+    print N'============================================'
+end
+go
+drop proc usp_InThongTinHoaDon
+exec usp_InThongTinHoaDon 'N0001'
+-- Test in hóa đơn nhập N0001
+exec usp_InThongTinHoaDon 'N0001'
+
+-- Test in hóa đơn xuất X0001
+exec usp_InThongTinHoaDon 'X0001'
+
+-- Test in hóa đơn không tồn tại
+exec usp_InThongTinHoaDon 'XXX99'
+
+-- Test in với định dạng đẹp
+exec usp_InHoaDonChiTiet 'N0001'
