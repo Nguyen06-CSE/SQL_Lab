@@ -134,3 +134,53 @@ HAVING COUNT(MS.MaThe) = (
 SELECT TuaDe 
 FROM Sach 
 WHERE MaSach NOT IN (SELECT MaSach FROM MuonSach)
+
+select	TuaDe
+from	Sach a
+where	not exists ( select MaSach from MuonSach b where a.MaSach = b.MaSach)
+
+
+---ham cho biet so luong muon sach trong 1 khoang thoi gian cho truoc
+create function fn_TongSoLuongMuonTrongKhoangThoiGianChoTruoc (@NgayBD datetime, @NgayKT datetime)
+returns table
+as
+return(
+		select	COUNT(b.MaSach) as SoLuong, @NgayBD as TuNgay, @NgayKT as DenNgay
+		from	Sach a, MuonSach b
+		where	a.MaSach = b.MaSach and b.NgayMuon between @NgayBD and @NgayKT
+		)
+go
+
+
+SELECT * FROM dbo.fn_TongSoLuongMuonTrongKhoangThoiGianChoTruoc('01/01/2016', '31/12/2017')
+
+
+---mau cua co 
+Create trigger tr_CaHoc_ins_upd_GioBD_GioKT
+On CaHoc  for insert, update
+As
+if  update(GioBatDau) or update (GioKetThuc)
+	     if exists(select * from inserted i where i.GioKetThuc<i.GioBatDau)	
+	      begin
+	    	 raiserror (N'Giờ kết thúc ca học không thể nhỏ hơn giờ bắt đầu',15,1)--Thông báo lỗi cho người dùng
+		     rollback tran	--Hũy thao tác gây ra vi phạm ràng buộc toàn vẹn & đưa CSDL về tình trạng trước khi thao tác
+	      end
+
+
+---dung Trigger cai dat RBTV "ngay tra sach ko duoc truoc ngay muon sach"
+create trigger tr_NgayTra_Sau_NgayMuon
+on MuonSach  
+for insert, update
+as
+if update(NgayMuon) or update (NgayTra)
+	if exists (select * from inserted i where i.NgayTra < i.NgayMuon)
+		begin
+			raiserror (N'ngày trả không thể nào bắt đầu trước ngày mượn', 15, 1)
+			rollback tran
+		end
+--drop trigger tr_NgayTra_Sau_NgayMuon
+
+---test case
+UPDATE MuonSach 
+SET NgayTra = '01/03/2017' 
+WHERE MaThe = '050002' AND MaSach = 'TH0004' AND NgayMuon = '04/03/2017';
